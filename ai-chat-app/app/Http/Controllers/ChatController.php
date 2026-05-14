@@ -1,0 +1,49 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Conversation;
+use App\Models\Message;
+use Illuminate\Http\Request;
+
+class ChatController extends Controller
+{
+    public function send(Request $request)
+    {
+        // Validate the incoming request
+        $validated = $request->validate([
+            'conversation_id' => 'nullable|exists:conversations,id',
+            'message' => 'required|string',
+        ]);
+
+        // Get or create a conversation
+        if (isset($validated['conversation_id'])) {
+            $conversation = Conversation::find($validated['conversation_id']);
+        } else {
+            $conversation = Conversation::create([
+                'user_id' => 1, // TODO: Get from authenticated user
+                'title' => substr($validated['message'], 0, 50),
+            ]);
+        }
+
+        // Save the user's message
+        $userMessage = $conversation->messages()->create([
+            'role' => 'user',
+            'content' => $validated['message'],
+        ]);
+
+        // TODO: Call AI API here and save response
+
+        // For now, return a mock AI response
+        $aiMessage = $conversation->messages()->create([
+            'role' => 'assistant',
+            'content' => 'This is a test response. AI integration coming soon!',
+        ]);
+
+        return response()->json([
+            'conversation_id' => $conversation->id,
+            'user_message' => $userMessage,
+            'ai_message' => $aiMessage,
+        ]);
+    }
+}
