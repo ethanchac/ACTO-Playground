@@ -4,10 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Services\GroqService;
 use Illuminate\Http\Request;
 
 class ChatController extends Controller
 {
+    protected $groqService;
+
+    public function __construct(GroqService $groqService)
+    {
+        $this->groqService = $groqService;
+    }
     public function send(Request $request)
     {
         // Validate the incoming request
@@ -32,12 +39,25 @@ class ChatController extends Controller
             'content' => $validated['message'],
         ]);
 
-        // TODO: Call AI API here and save response
+        // Get all messages in this conversation for context
+        $allMessages = $conversation->messages()
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(function ($message) {
+                return [
+                    'role' => $message->role,
+                    'content' => $message->content,
+                ];
+            })
+            ->toArray();
 
-        // For now, return a mock AI response
+        // Call Groq AI API
+        $aiResponse = $this->groqService->chat($allMessages);
+
+        // Save the AI's response
         $aiMessage = $conversation->messages()->create([
             'role' => 'assistant',
-            'content' => 'This is a test response. AI integration coming soon!',
+            'content' => $aiResponse,
         ]);
 
         return response()->json([
