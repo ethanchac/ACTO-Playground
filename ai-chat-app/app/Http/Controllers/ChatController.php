@@ -28,7 +28,7 @@ class ChatController extends Controller
             $conversation = Conversation::find($validated['conversation_id']);
         } else {
             $conversation = Conversation::create([
-                'user_id' => 1, // TODO: Get from authenticated user
+                'user_id' => $request->user()->id,
                 'title' => substr($validated['message'], 0, 50),
             ]);
         }
